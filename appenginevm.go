@@ -163,3 +163,7 @@ func (query Query) createQuery() (q *datastore.Query) {
 func (query Query) deleteByKey(key *datastore.Key) error {
 	return datastore.Delete(query.Context, key)
 }
+
+func AutoMigrate(context Context, kind string, primary_key string, dst interface{}){
+	//no-op
+}

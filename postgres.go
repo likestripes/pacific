@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 )
 
@@ -236,6 +237,14 @@ func order_by(order string) (direction, column string) {
 	return
 }
 
+func AutoMigrate(context Context, kind string, primary_key string, dst interface{}){
+	tableName := strings.ToLower(kind) + "s"
+	table := context.Connection.Table(tableName)
+	table.AutoMigrate(dst)
+	compositeIndex(table, kind, primary_key, dst, []string{})
+}
+
+
 func (query *Query) table(dst interface{}) *gorm.DB { //TODO: this should use Context.Tables to memoize
 
 	query.tableify()
@@ -246,7 +255,7 @@ func (query *Query) table(dst interface{}) *gorm.DB { //TODO: this should use Co
 	if migrated, ok := query.Context.Tables[query.tableName]; migration_from_env() && dst != nil && !query.migrated && (!ok || !migrated) {
 		log.Print("running automigrate and idx creation")
 		query.Table.AutoMigrate(dst)
-		query.indexPrimaryKey()
+		query.indexPrimaryKey(dst)
 		query.migrated = true
 		query.Context.Tables[query.tableName] = true
 	}
@@ -304,20 +313,48 @@ func (ancestor *Ancestor) key() interface{} {
 	return ancestor.Key
 }
 
-func (query *Query) indexPrimaryKey() {
+func (query *Query) indexPrimaryKey(dst interface{}) {
 	query.primaryKey()
+
 	if query.PrimaryKey != "" {
-		index_name := "idx_" + query.PrimaryKey
-		indexes := []string{query.PrimaryKey}
-		for _, ancestor := range query.Ancestors {
-			if ancestor.PrimaryKey != "" {
-				index_name = index_name + "_" + ancestor.PrimaryKey
-				indexes = append(indexes, ancestor.PrimaryKey)
+		parents := []string{}
+
+		if len(query.Ancestors) > 0 {
+			for _, ancestor := range query.Ancestors {
+				parents = append(parents, ancestor.PrimaryKey)
 			}
 		}
-		if len(indexes) > 0 {
-			query.Table.AddUniqueIndex(index_name, indexes...) //TODO: if not exists?
-		}
+
+		compositeIndex(query.Table, query.Kind, query.PrimaryKey, dst, parents)
 	}
 	return
+}
+
+func compositeIndex(table *gorm.DB, kind string, primary_key string, dst interface{}, parents []string) {
+
+	index_name := "idx_"+ kind +"_"+ primary_key
+	indexes := []string{primary_key}
+
+	if len(parents) == 0 {
+		parents = []string{}
+		st := reflect.TypeOf(dst).Elem()
+		for i := 0; i < st.NumField(); i++ {
+			field := st.Field(i)
+			pacific_parent := field.Tag.Get("pacific_parent")
+			if pacific_parent != "" {
+				parents = append(parents, pacific_parent)
+			}
+		}
+	}
+
+	for _, parent := range parents {
+		if parent != "" {
+			index_name = index_name + "_" + parent
+			indexes = append(indexes, parent)
+		}
+	}
+
+	if len(indexes) > 0 {
+		table.AddUniqueIndex(index_name, indexes...) //TODO: if not exists?
+	}
 }

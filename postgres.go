@@ -5,6 +5,7 @@ package pacific
 import (
 	"fmt"
 	"github.com/jinzhu/gorm"
+	"github.com/serenize/snaker"
 	_ "github.com/lib/pq"
 	"log"
 	"net/http"
@@ -115,7 +116,7 @@ type Query struct {
 	Key        interface{}
 	Ancestors  []Ancestor
 	Order      string
-	Filters    map[string]string
+	Filters    map[string]interface{}
 }
 
 func (query Query) Delete() (err error) {
@@ -203,7 +204,8 @@ func (query Query) createQuery() (q *gorm.DB) {
 	}
 
 	for filter_by, value := range query.Filters {
-		filter_by_str := filter_by + " = ?"
+		filter_by = snaker.CamelToSnake(filter_by)
+		filter_by_str := filter_by + " ?"
 		q = q.Where(filter_by_str, value)
 	}
 

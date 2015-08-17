@@ -80,7 +80,7 @@ type Query struct {
 	KeyInt     int64
 	Ancestors  []Ancestor
 	Order      string
-	Filters    map[string]string
+	Filters    map[string]interface{}
 	PrimaryKey string
 }
 

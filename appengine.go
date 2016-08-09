@@ -8,6 +8,10 @@ import (
 	"net/http"
 )
 
+func (context Context) Client() *http.Client {
+   return &http.Client{}
+}
+
 type MockConnection struct{}
 
 func (conn MockConnection) Close() {

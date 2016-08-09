@@ -102,16 +102,6 @@ func (query Query) GetAll(results interface{}) error {
 func (query Query) Put(entry interface{}) error {
 	key := query.key()
 	_, err := datastore.Put(query.Context, key, entry)
-
-	if err != nil {
-		query.Context.Errorf("Put Query Error Kind: " + query.Kind)
-		query.Context.Errorf("Put Query Error KeyString: " + query.KeyString)
-		for _, ancestor := range query.Ancestors {
-			query.Context.Errorf("Put Query Error-anc Kind: " + ancestor.Kind)
-			query.Context.Errorf("Put Query Error-anc KeyString: " + ancestor.KeyString)
-		}
-		query.Context.Errorf(err.Error())
-	}
 	return err
 }
 

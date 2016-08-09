@@ -93,6 +93,10 @@ func (context Context) Errorf(obj interface{}) {
 	log.Print(obj)
 }
 
+func (context Context) Client() *http.Client {
+	return &http.Client{}
+}
+
 type Ancestor struct {
 	Kind       string
 	KeyString  string
